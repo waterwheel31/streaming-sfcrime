@@ -1,4 +1,4 @@
-findspark
 pyspark
 python-dateutil
 pathlib
+findspark
