@@ -21,9 +21,8 @@ This produces a stream stream that sends San Franciso Crime data periodically us
 1.  Install required packages by 
 ```
 conda install -r requirements.txt
+conda install pyspark
 pip install kafka-python
-pip install findspark
-
  ```
 
 2. Download the data ('police-department-calls-for-service.json') and place on the same folder of `kafka_server.py'. This data comes from Kaggle (https://www.kaggle.com/c/sf-crime/data)
@@ -55,13 +54,20 @@ python kafka_server.py
 7. Consume the stream data. In the folder you have installed kafka, run following (in case of "new_topic" topic)
 
 ```
-./bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic new_topic 
+./bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic new_topic --from-beginning
 
 ```
 you will find the data like below start flowing (1 data every second)
 
 ![data](./Consumer-data.png)
 
+
+
+8. Run Spark by following code 
+
+```
+spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.11:2.4.3 --master local[*] data_stream.py
+```
 
 
 
