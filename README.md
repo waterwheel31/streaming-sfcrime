@@ -51,10 +51,10 @@ python kafka_server.py
 ./bin/kafka-topics.sh --list --zookeeper localhost:2181
 ```
 
-7. Consume the stream data. In the folder you have installed kafka, run following (in case of "new_topic" topic)
+7. Consume the stream data.  run following (in case of "new_topic" topic)
 
 ```
-./bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic new_topic --from-beginning
+python consumer_server.py
 
 ```
 you will find the data like below start flowing (1 data every second)
@@ -68,6 +68,8 @@ you will find the data like below start flowing (1 data every second)
 ```
 spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.11:2.4.3 --master local[*] data_stream.py
 ```
+
+9. Monitroing UI is at `http://10.0.2.15:4040`  on localhost
 
 
 

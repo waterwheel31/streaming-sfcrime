@@ -34,6 +34,8 @@ def run_spark_job(spark):
         .option("kafka.bootstrap.servers", "localhost:9092") \
         .option("subscribe", "new_topic") \
         .load()
+       # .option("maxOffsetsPerTrigger", 200)
+      
 
     print('df created')
 
@@ -43,7 +45,6 @@ def run_spark_job(spark):
     # TODO extract the correct column from the kafka input resources
     # Take only value and convert it to String
     kafka_df = df.selectExpr("CAST(value AS string)")
-
 
     print('kafka_df created')
 
@@ -57,23 +58,19 @@ def run_spark_job(spark):
     # TODO select original_crime_type_name and disposition
     distinct_table = service_table.select(['original_crime_type_name', 'disposition'])  # need update
 
-    print('distinct tabled created')
-
     # count the number of original crime type
-    #agg_df = service_table.groupBy('original_crime_type_name').count()
-    agg_df = service_table.groupBy('original_crime_type_name').count()
-
-    print('agg_df:', agg_df)
-
+    #agg_df = distinct_table.groupBy('original_crime_type_name').count()
+    agg_df = distinct_table 
+     
+        #.withWatermark('call_date_time', '20 seconds')\
+        
     print('agg_df created')
-
 
     # TODO Q1. Submit a screen shot of a batch ingestion of the aggregation
     # TODO write output stream
     query = agg_df \
         .writeStream\
-        .trigger(processingTime='100 Minutes')\
-        .outputMode('Complete')\
+        .trigger(once=True)\
         .format('console')\
         .start()
 

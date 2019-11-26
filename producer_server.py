@@ -1,6 +1,9 @@
 from kafka import KafkaProducer
 import json
 import time
+import io
+from fastavro import parse_schema, writer
+import data_stream
 
 
 class ProducerServer(KafkaProducer):
@@ -32,4 +35,6 @@ class ProducerServer(KafkaProducer):
     def dict_to_binary(self, json_dict):
         binary = json.dumps(json_dict).encode('utf-8')
         return binary 
-        
+        #out = io.BytesIO()
+        #writer(out, data_stream.schema, json_dict )
+        #return out.getValue()
