@@ -63,13 +63,18 @@ you will find the data like below start flowing (1 data every second)
 
 
 
-8. Run Spark by following code 
+8. Consume using Spark Streaming by following code 
 
 ```
 spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.11:2.4.3 --master local[*] data_stream.py
 ```
 
-9. Monitroing UI is at `http://10.0.2.15:4040`  on localhost
+You will see aggregated data like below
+
+![data](./Consumer-spark.png)
+
+
+9. Monitroing Spark UI is at `http://10.0.2.15:4040`  on localhost
 
 
 

@@ -3,9 +3,8 @@ import json
 from pyspark.sql import SparkSession
 from pyspark.sql.types import *
 import pyspark.sql.functions as psf
+from pyspark.sql.functions import *
 
-
-# TODO Create a schema for incoming resources
 schema = StructType([
     StructField("crime_id", StringType(), True),
     StructField("original_crime_type_name", StringType(), True),
@@ -25,29 +24,25 @@ schema = StructType([
 
 def run_spark_job(spark):
 
-    # Create Spark configurations with max offset of 200 per trigger
-    # set up correct bootstrap server and port
     print('run spark job')
     df = spark \
         .readStream \
         .format("kafka") \
         .option("kafka.bootstrap.servers", "localhost:9092") \
         .option("subscribe", "new_topic") \
+        .option("maxOffsetsPerTrigger", 200)\
         .load()
-       # .option("maxOffsetsPerTrigger", 200)
       
-
     print('df created')
 
-    # Show schema for the incoming resources for checks
     df.printSchema()
-
-    # TODO extract the correct column from the kafka input resources
-    # Take only value and convert it to String
+    
     kafka_df = df.selectExpr("CAST(value AS string)")
 
     print('kafka_df created')
+    kafka_df.printSchema()
 
+    
     service_table = kafka_df\
         .select(psf.from_json(psf.col('value'), schema).alias("DF"))\
         .select("DF.*")
@@ -55,57 +50,55 @@ def run_spark_job(spark):
     print('service table created')
     service_table.printSchema()
     
-    # TODO select original_crime_type_name and disposition
-    distinct_table = service_table.select(['original_crime_type_name', 'disposition'])  # need update
+    #query1st = service_table.writeStream.format('console').start()
+    #query1st.awaitTermination()
+    
+    distinct_table = service_table.select(['call_date_time','original_crime_type_name', 'disposition'])  # need update
+
+    #query2nd = distinct_table.writeStream.format('console').start()
+    #query2nd.awaitTermination()
 
     # count the number of original crime type
-    #agg_df = distinct_table.groupBy('original_crime_type_name').count()
-    agg_df = distinct_table 
-     
-        #.withWatermark('call_date_time', '20 seconds')\
-        
-    print('agg_df created')
+    agg_df = distinct_table.select(distinct_table.call_date_time.cast('timestamp'),\
+                                    'original_crime_type_name', 'disposition')\
+                            .withWatermark('call_date_time', '10 minutes')\
+                            .groupBy(
+                                window('call_date_time', '10 minutes'),
+                                'original_crime_type_name')\
+                            .count()
+    agg_df.printSchema()
+    
 
-    # TODO Q1. Submit a screen shot of a batch ingestion of the aggregation
-    # TODO write output stream
-    query = agg_df \
-        .writeStream\
-        .trigger(once=True)\
-        .format('console')\
-        .start()
+    query3rd = agg_df.writeStream.format('console').start()
+    query3rd.awaitTermination()
 
-    print('query created')
+    # joining table 
 
+    radio_code_json_filepath = "./radio_code.json"
+    radio_code_df = spark.read.option("multiline", "true").json(radio_code_json_filepath)
 
+    print("radio code schema:")
+    radio_code_df.printSchema()
 
-    # TODO attach a ProgressReporter
-    query.awaitTermination()
-
-    # TODO get the right radio code json path
-    radio_code_json_filepath = "./data_stream.py"
-    radio_code_df = spark.read.json(radio_code_json_filepath)
-
-    # clean up your data so that the column names match on radio_code_df and agg_df
-    # we will want to join on the disposition code
-
-    # TODO rename disposition_code column to disposition
     radio_code_df = radio_code_df.withColumnRenamed("disposition_code", "disposition")
 
-    print('radio code:', radio_code_df)
+    print('radio code schema after rename:')
+    radio_code_df.printSchema()
 
-    # TODO join on disposition column
-    join_query = agg_df.join(radio_code_df, 'desposition')
-    join_query.writeStream.start()
+    join_query = distinct_table.join(radio_code_df, 'disposition')
 
-    join_query.awaitTermination()
+    print('join query schema:')
+    join_query.printSchema()
 
+    join_query.writeStream.format('console').start().awaitTermination()
+
+    
 
 if __name__ == "__main__":
     logger = logging.getLogger(__name__)
 
     print('main started')
 
-    # TODO Create Spark in Standalone mode
     spark = SparkSession \
         .builder \
         .master("local[*]") \
