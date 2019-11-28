@@ -30,6 +30,7 @@ def run_spark_job(spark):
         .format("kafka") \
         .option("kafka.bootstrap.servers", "localhost:9092") \
         .option("subscribe", "new_topic") \
+        .option("startingOffsets", "earliest")\
         .option("maxOffsetsPerTrigger", 200)\
         .load()
       
@@ -97,20 +98,14 @@ def run_spark_job(spark):
 if __name__ == "__main__":
     logger = logging.getLogger(__name__)
 
-    print('main started')
-
     spark = SparkSession \
         .builder \
         .master("local[*]") \
         .appName("KafkaSparkStructuredStreaming") \
         .getOrCreate()
 
-    print('sparkSession created\n')
-
     logger.info("Spark started")
 
     run_spark_job(spark)
-
-    print('spark job run!')
 
     spark.stop()
